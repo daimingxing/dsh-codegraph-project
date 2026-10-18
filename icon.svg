@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="CodeGraph per-project index">
+  <title>CodeGraph per project</title>
+  <rect width="32" height="32" rx="7" fill="#12222e"/>
+  <!-- 一个仓库盒：表示"项目维度" -->
+  <path d="M7 12.5 16 7l9 5.5v7L16 25l-9-5.5z" fill="none" stroke="#5ad1c4" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- 图节点：表示代码图 -->
+  <circle cx="16" cy="16" r="2.6" fill="#5ad1c4"/>
+  <circle cx="10.6" cy="10.4" r="1.7" fill="#f0a75a"/>
+  <circle cx="21.4" cy="10.4" r="1.7" fill="#f0a75a"/>
+  <circle cx="16" cy="23.2" r="1.7" fill="#f0a75a"/>
+  <g stroke="#8fb6c4" stroke-width="1.2" stroke-linecap="round">
+    <path d="M16 16 10.6 10.4M16 16l5.4-5.6M16 16v7.2"/>
+  </g>
+</svg>

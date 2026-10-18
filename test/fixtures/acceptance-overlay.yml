@@ -1,0 +1,6 @@
+# 真机验收叠加层：把探针作为独立行挂到 headless profile 上。
+# 单独成行而不是做成 bundle，是为了让探针永远不进入用户 profile。
+# 插件行本身由 profile 的 bundle 提供，这里只追加探针，避免两层 patch 互相覆盖。
+- insert:
+    - id: codegraph-acceptance-probe
+      name: codegraph-acceptance-probe

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "CodeGraph（按项目）",
+    "description": "把 CodeGraph 的代码检索工具接入会话，并自动查询该会话真正所在仓库的索引。目录里没有 .codegraph/ 索引的会话不会出现这些工具。"
+  }
+}

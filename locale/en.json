@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "CodeGraph (per project)",
+    "description": "Adds CodeGraph code-intelligence tools to a session for the repository that session is actually working in. Sessions whose directory has no .codegraph/ index get no tools."
+  }
+}

@@ -1,0 +1,12 @@
+# npm 依赖：config.js 需要 @deepseek-ai/schemastery，换机器跑一次
+#   npm install --omit=dev
+# 即可重建，不入库。
+node_modules/
+
+# npm 在 node_modules 内生成的隐藏锁文件（避免仓库双锁文件并存）。
+package-lock.json
+npm-shrinkwrap.json
+
+# 真机验收脚本可能留下的临时产物。
+*.log
+probe-result.log
