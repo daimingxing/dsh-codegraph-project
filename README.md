@@ -13,11 +13,19 @@
 
 ---
 
-把已经安装的 [CodeGraph](https://github.com/colbymchenry/codegraph) 按**项目维度**接入 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：每个会话根据自己的工作目录自动定位 `.codegraph/` 索引，多项目各用各的连接，互不串味。
+**这是一个 CodeGraph 兼容层，不是又一个 CodeGraph。**
 
-## 问题：一个 cwd，多个仓库
+插件不重新实现任何索引、查询或代码分析逻辑——它直接复用你已经安装的 CodeGraph CLI 和它建好的 `.codegraph/` 索引，把工具按**项目维度**接入 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)。因此：
 
-CodeGraph 的 MCP 服务从**自身进程的 `cwd`** 推断"当前项目"。而 DSH 的插件配置是 profile 级（全局），`dsh-mcp-client` 只能写死一个目录：
+- CodeGraph 升级、换版本、重建索引，本插件照常工作；
+- Codex、Claude Code、Cursor 等工具的 CodeGraph 配置**原样保留**，互不影响——本插件不写任何全局配置文件，不抢注任何 MCP 服务名；
+- 卸载本插件，你的 CodeGraph 环境和你其他工具的集成完全不受影响。
+
+接入后，DSH 里的每个会话根据自己的工作目录自动定位 `.codegraph/` 索引，多项目各用各的连接，互不串味。
+
+## 传统接法的问题：一个 cwd，多个仓库
+
+把 CodeGraph 接进任何宿主（包括 DSH），官方姿势都是配一个 MCP 服务、指向一个项目目录。这在单仓库下没有问题，但 DSH 的插件配置是 **profile 级（全局）**——你只有一个配置位，却可能同时开着五六个仓库的会话：
 
 ```yaml
 - insert:
@@ -27,7 +35,9 @@ CodeGraph 的 MCP 服务从**自身进程的 `cwd`** 推断"当前项目"。而 
         cwd: D:\path\to\only-one-project     # ← 换个项目就错了
 ```
 
-后果不是报错，而是更糟的**静默查错仓库**——你在仓库 B 的会话里提问，它返回仓库 A 的结果。
+后果不是报错，而是更糟的**静默查错仓库**——你在仓库 B 的会话里提问，它返回仓库 A 的结果。会话看起来一切正常，答案却是另一个代码库的，直到某天你发现它引用了一个根本不存在的类。
+
+本插件解决的问题就一句话：**让"当前项目"由会话自己决定，而不是由一份全局配置决定。**
 
 ## 解法：把"项目"补在 DSH 侧
 
@@ -57,17 +67,16 @@ agent D（无索引目录）  ──（看不到任何 codegraph 工具）
 **两种安装方式**
 
 ```bash
-# 方式一：本地目录（开发/自用）
+# 方式一：从 npm 安装（推荐，装完即用）
+dsh plugin --profile <你的 profile> add dsh-codegraph-project
+
+# 方式二：本地目录（开发/自用）
 # 在 DSH 的 Plugins 页粘贴本仓库的绝对路径，或用 CLI：
 dsh plugin --profile <你的 profile> add <本仓库路径>
-
-# 方式二：发布后从 npm 安装
-dsh plugin --profile <你的 profile> add dsh-codegraph-project
 ```
 
-> **Windows 注意**：本仓库以本地目录方式安装时，需要在仓库里执行一次
-> `npm install --omit=dev`。ESM 从源码目录解析依赖，profile 的 `node_modules`
-> 帮不上忙；发布到 npm 后安装则无此步骤。
+> **Windows 本地目录安装注意**：需要在仓库里执行一次 `npm install --omit=dev`。
+> ESM 从源码目录解析依赖，profile 的 `node_modules` 帮不上忙；从 npm 安装则无此步骤。
 
 安装后**零配置**：有索引的会话自动获得工具，没有的会话干净如初。
 
