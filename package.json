@@ -1,7 +1,6 @@
 {
   "name": "dsh-codegraph-project",
   "version": "0.1.0",
-  "private": true,
   "description": "Per-project CodeGraph MCP tools: each session queries the repo it is actually working in",
   "license": "MIT",
   "type": "module",
