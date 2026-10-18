@@ -75,8 +75,12 @@ dsh plugin --profile <你的 profile> add dsh-codegraph-project
 dsh plugin --profile <你的 profile> add <本仓库路径>
 ```
 
-> **Windows 本地目录安装注意**：需要在仓库里执行一次 `npm install --omit=dev`。
-> ESM 从源码目录解析依赖，profile 的 `node_modules` 帮不上忙；从 npm 安装则无此步骤。
+> **两种方式的差异**：从 npm 安装时，依赖（`@deepseek-ai/schemastery`）随包自动
+> 就位，无需任何额外步骤；本地目录安装时，由于 ESM 从源码目录解析依赖，需要先在
+> 仓库里执行一次 `npm install --omit=dev`。
+
+包已发布：[npmjs.com/package/dsh-codegraph-project](https://www.npmjs.com/package/dsh-codegraph-project) ·
+当前版本见 `npm view dsh-codegraph-project version`。
 
 安装后**零配置**：有索引的会话自动获得工具，没有的会话干净如初。
 
@@ -149,6 +153,32 @@ DSH 的 `SubprocessHandle` 不暴露 pid，插件改用**项目标识**对应进
 - `ProjectHub.projectTag` / `ProjectHub.stderrTail` 暴露同一标识与子进程 stderr 尾部；
 - 会话销毁时按 debug 级记录释放结果与剩余会话数；
 - 启动失败在同一项目上只告警一次，恢复后复发会再次告警。
+
+## 更新
+
+已通过 npm 安装后，升级到新版本：
+
+```bash
+dsh plugin --profile <你的 profile> add dsh-codegraph-project   # 重新 add 即升级到 latest
+```
+
+维护者发布新版本：
+
+```bash
+# 改代码 → 测试 → 提交（npm version 要求工作区干净）
+npm test
+git add -A && git commit -m "..."
+
+# 升版本号（同时改 package.json + 自动 commit + 打 tag）
+npm version patch   # 修 bug：0.1.0 → 0.1.1
+npm version minor   # 新功能：0.1.0 → 0.2.0
+npm version major   # 破坏性变更：0.1.0 → 1.0.0
+
+git push && git push --tags
+npm publish --registry=https://registry.npmjs.org
+```
+
+版本号遵循 [semver](https://semver.org/lang/zh-CN/)：已发布的版本号永不复用，改动再小也发新版本号。
 
 ## 文档
 

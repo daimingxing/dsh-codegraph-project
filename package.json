@@ -20,6 +20,9 @@
   "dependencies": {
     "@deepseek-ai/schemastery": "~3.18.5"
   },
+  "scripts": {
+    "test": "node --test test/locate.test.js test/pool.test.js test/bridge.test.js"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
