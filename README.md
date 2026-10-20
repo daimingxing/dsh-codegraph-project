@@ -75,9 +75,9 @@ dsh plugin --profile <你的 profile> add dsh-codegraph-project
 dsh plugin --profile <你的 profile> add <本仓库路径>
 ```
 
-> **两种方式的差异**：从 npm 安装时，依赖（`@deepseek-ai/schemastery`）随包自动
-> 就位，无需任何额外步骤；本地目录安装时，由于 ESM 从源码目录解析依赖，需要先在
-> 仓库里执行一次 `npm install --omit=dev`。
+> **依赖说明**：`@deepseek-ai/schemastery` 声明为宿主共享的 `peerDependencies`；
+> 使用 npm 7 及以上版本安装时，会自动补齐缺失的 peer 依赖。本地目录安装时，
+> 由于 ESM 从源码目录解析依赖，需要先在仓库里执行一次 `npm install --omit=dev`。
 
 包已发布：[npmjs.com/package/dsh-codegraph-project](https://www.npmjs.com/package/dsh-codegraph-project) ·
 当前版本见 `npm view dsh-codegraph-project version`。

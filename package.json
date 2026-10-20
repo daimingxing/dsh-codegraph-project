@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Per-project CodeGraph MCP tools: each session queries the repo it is actually working in",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daimingxing/dsh-codegraph-project.git"
+  },
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -17,7 +21,7 @@
     "icon.svg",
     "cordis.patch.yml"
   ],
-  "dependencies": {
+  "peerDependencies": {
     "@deepseek-ai/schemastery": "~3.18.5"
   },
   "scripts": {
