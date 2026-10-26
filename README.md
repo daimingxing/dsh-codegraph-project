@@ -137,6 +137,8 @@ dsh plugin --profile web add dsh-codegraph-project@latest
     serverName: codegraph
     toolCallTimeoutMs: 60000
     watchIntervalMs: 2000
+    # 不附带 CodeGraph 的使用说明，节约约 1.7k token
+    # injectInstructions: false
 ```
 
 | 字段 | 默认值 | 说明 |
@@ -148,14 +150,14 @@ dsh plugin --profile web add dsh-codegraph-project@latest
 | `toolCallTimeoutMs` | `60000` | 单次工具调用超时，单位毫秒，必须大于 0 |
 | `connectTimeoutMs` | `5000` | MCP 握手超时，单位毫秒，必须大于 0 |
 | `watchIntervalMs` | `2000` | 重新检查项目的最短间隔，单位毫秒；`0` 表示每次消息处理前都检查 |
-| `injectInstructions` | `true` | 把 CodeGraph 的使用指引注入系统提示词 |
+| `injectInstructions` | `true` | 是否转交 CodeGraph 自带的使用说明（约 1.7k token） |
 | `maxInstructionBytes` | `32768` | 注入的字节上限；超出则跳过注入并告警，工具不受影响 |
 
 **Windows 启动失败：** 默认会处理 npm 全局安装生成的 `.cmd` 启动脚本。安装布局不同时，按日志提示设置 `codegraphBin` 和 `codegraphArgs`；如果通过 `node.exe` 启动，参数需包含入口脚本路径以及 `serve`、`--mcp`。
 
 **索引识别边界：** 插件从会话目录向上查找包含 `.db` 数据库文件的 `.codegraph/`，不会跨过 `.git` 仓库边界，也不会把家目录或文件系统根目录当成项目。索引无法读取时会停止查找。
 
-**工具与提示词：** 默认工具名以 `mcp__codegraph__` 开头。插件会把 CodeGraph 自带的使用指引（约 6.8KB）注入当前会话的系统提示词，跟着项目走：有索引的会话才有，换项目会自动替换。不需要时可用 `injectInstructions: false` 关掉。详见[设计理由](docs/instructions.md)。
+**工具与提示词：** 默认工具名以 `mcp__codegraph__` 开头。CodeGraph 原生会提供一份使用说明给大模型（约 1.7k token），插件会把它转交给当前会话，跟着项目走：有索引的会话才有，换项目自动替换。想节约这部分上下文，可设 `injectInstructions: false`；此时工具照常可用，也可以在项目的 `AGENTS.md` 里写一份更精简的版本。详见[设计理由](docs/instructions.md)。
 
 </details>
 
