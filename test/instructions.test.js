@@ -108,7 +108,14 @@ function fakeHost({ instructions = INSTRUCTIONS, systemPrompt = true, sectionErr
     },
   }
 
-  const tools = { registered: [], register: (tool) => (tools.registered.push(tool), () => {}) }
+  const tools = {
+    registered: [],
+    register(tool) {
+      if (tools.registerError !== undefined) throw tools.registerError
+      tools.registered.push(tool)
+      return () => {}
+    },
+  }
 
   /**
    * 一个会话语境。
@@ -120,7 +127,10 @@ function fakeHost({ instructions = INSTRUCTIONS, systemPrompt = true, sectionErr
   function agentCtx() {
     const inner = {
       get: (serviceName) => (serviceName === 'systemPrompt' && systemPrompt ? sectionService : undefined),
-      tools,
+      // 动态读 ctx.tools，而不是闭包捕获：测试需要能替换掉 register 来模拟冲突。
+      get tools() {
+        return ctx.tools
+      },
       on(event, listener) {
         listeners.set(event, [...(listeners.get(event) ?? []), listener])
         return () => {}
@@ -132,6 +142,7 @@ function fakeHost({ instructions = INSTRUCTIONS, systemPrompt = true, sectionErr
   const ctx = {
     logger,
     subprocess,
+    tools,
     get: (serviceName) => (serviceName === 'systemPrompt' && systemPrompt ? sectionService : undefined),
     on(event, listener) {
       listeners.set(event, [...(listeners.get(event) ?? []), listener])
@@ -252,6 +263,32 @@ test('降级：section 注册抛错（同名冲突）时告警并继续注册工
   assert.equal(warnings.length, 1)
   assert.match(warnings[0], /could not inject codegraph instructions/)
   assert.match(warnings[0], /Tools are unaffected/)
+})
+
+test('工具一个都没注册成功时不注入指引', async (t) => {
+  // 指引讲的是 codegraph_explore 怎么用。若该工具因命名冲突没注册上，注入指引等于
+  // 让模型去找一个不存在的工具——比没有指引更糟。
+  const root = mkdtempSync(join(tmpdir(), 'cg-nointr-'))
+  const project = join(root, 'project')
+  mkdirSync(join(project, '.codegraph'), { recursive: true })
+  writeFileSync(join(project, '.codegraph', 'codegraph.db'), '')
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+
+  const host = fakeHost()
+  host.ctx.tools = {
+    registerError: new Error('tool name conflict'),
+    register() {
+      throw host.ctx.tools.registerError
+    },
+  }
+  apply(host.ctx, { ...BASE_CONFIG })
+
+  const agent = { session: { header: { cwd: project } }, ctx: host.agentCtx() }
+  for (const listener of host.listeners.get('agent/created') ?? []) {
+    await listener({ agent, signal: undefined })
+  }
+
+  assert.equal(host.sections.length, 0, '没有可用工具时不该注入指引')
 })
 
 test('指引注册在会话 scope，不是全局 scope', async (t) => {
