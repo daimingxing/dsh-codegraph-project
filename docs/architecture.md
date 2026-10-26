@@ -217,15 +217,22 @@ agent.ctx.on('agent/pre-step', (payload, next) => {
 
 代价：未索引会话每 step 两次 `stat`。可选加 2 秒节流。
 
-### 决策 6：不注入 CodeGraph 的 `instructions`
+### 决策 6：注入 CodeGraph 的 `instructions`
 
-CodeGraph 的 `initialize` 响应带 6,718 字符的 instructions，不通过 `dsh-mcp-client` 不会自动进入提示词。本插件**不注入**它。
+CodeGraph 的 `initialize` 响应带 6786 字节的完整 playbook（实测 1.6.2，两个真实项目
+一致）。本插件**注入**它，注册为 per-agent 的 `systemPrompt` section。
 
-详见 [why-no-prompt.md](why-no-prompt.md)。核心依据：
+详见 [instructions.md](instructions.md)。要点：
 
-1. **工具 description 已含核心指引**（实测 582 字符），且必然进入提示词
-2. **项目 `AGENTS.md` 是项目级提示词的正确位置**（DSH 按目录加载）
-3. 那 6,718 字符与 description 高度重叠，是进阶用法而非必要条件
+1. 这是 MCP 协议标准字段，DSH 官方 `dsh-mcp-client` 本来就会注入；本插件自建 transport，
+   必须显式补这一步，否则整条链路断开
+2. CodeGraph 因此把 installer 写进 `AGENTS.md` 的块**刻意写薄**，只覆盖子代理和非 MCP
+   宿主——所以「靠 AGENTS.md」不是替代方案，而是这个断点造成的后果
+3. 必须注册在 `agent.ctx`（不是顶层 `ctx`），否则会变成全局 section，让无索引会话也看到
+4. 所有失败路径降级为「少一段提示」，绝不影响工具可用性
+
+> 历史：本决策此前是「不注入」，依据是一份已被实测推翻的分析（见
+> [instructions.md](instructions.md) 末节）。
 
 ### 决策 7：保留 `projectPath` 参数
 

@@ -165,6 +165,26 @@ try {
   const afterIndexed = indexedPreStep?.children ?? -1
   check('有索引会话期间确实起了插件托管的 codegraph 进程', afterIndexed >= 1, `children=${afterIndexed}`)
 
+  // 提示词链路：这是「注入 instructions」功能的验收。不看插件内部状态，而是走
+  // systemPrompt.assemble()——与 agent-loop 组装请求时同一条路径。
+  const indexedSections = indexedPreStep?.prompt?.sections ?? []
+  check(
+    '有索引会话的系统提示词里存在 mcp:codegraph section',
+    indexedSections.some((section) => section.name === 'mcp:codegraph'),
+    `sections=${JSON.stringify(indexedSections.map((section) => section.name))}`,
+  )
+  const indexedPrompt = indexedSections.find((section) => section.name === 'mcp:codegraph')
+  check(
+    '注入的是 CodeGraph 官方 playbook（含特征标题）',
+    indexedPrompt?.head?.includes('Codegraph — code intelligence') === true,
+    `head=${JSON.stringify(indexedPrompt?.head ?? '')}`,
+  )
+  check(
+    '注入体量接近上游全文（>6000 bytes，排除被截断）',
+    (indexedPrompt?.bytes ?? 0) > 6000,
+    `bytes=${indexedPrompt?.bytes ?? 0}`,
+  )
+
   console.log('\n2) 无索引目录：会话里不存在 mcp__codegraph__* 工具')
   const unindexed = observe(UNINDEXED_DIR)
   const unindexedPreStep = unindexed.steps.filter((step) => step.at === 'pre-step').at(-1)
@@ -172,6 +192,14 @@ try {
     '无索引会话没有任何 mcp__codegraph__* 工具',
     Array.isArray(unindexedPreStep?.tools) && unindexedPreStep.tools.length === 0,
     `tools=${JSON.stringify(unindexedPreStep?.tools ?? [])}`,
+  )
+  // 作用域正确性的关键断言：section 若挂成全局，这里就会出现 mcp:codegraph。
+  // 工具「没注册」和提示词「没注入」必须同时成立，才算真的按会话隔离。
+  const unindexedSections = unindexedPreStep?.prompt?.sections ?? []
+  check(
+    '无索引会话的系统提示词里没有 mcp:codegraph section（作用域隔离）',
+    unindexedSections.length === 0,
+    `sections=${JSON.stringify(unindexedSections.map((section) => section.name))}`,
   )
 
   console.log('\n3) harness 退出后无残留进程')
@@ -187,11 +215,44 @@ try {
     Array.isArray(disabledPreStep?.tools) && disabledPreStep.tools.length === 0,
     `tools=${JSON.stringify(disabledPreStep?.tools ?? [])}`,
   )
+  check(
+    'disabled 会话没有 mcp:codegraph section',
+    (disabledPreStep?.prompt?.sections ?? []).length === 0,
+    `sections=${JSON.stringify((disabledPreStep?.prompt?.sections ?? []).map((s) => s.name))}`,
+  )
   await new Promise((resolve) => setTimeout(resolve, 500))
   const leakedDisabled = newProcessesSince(baseline)
   check('disabled 时不残留进程', leakedDisabled.length === 0, `leaked pids=${leakedDisabled.join(',') || '(none)'}`)
 
-  console.log('\n5) 非法配置被 schema 拒绝，不会注册出畸形工具名')
+  console.log('\n5) injectInstructions: false 时只关提示词，工具照常')
+  const noPrompt = observe(INDEXED_PROJECT, { config: { injectInstructions: false } })
+  const noPromptPreStep = noPrompt.steps.filter((step) => step.at === 'pre-step').at(-1)
+  check(
+    'injectInstructions=false 时仍有 codegraph 工具',
+    noPromptPreStep?.tools?.includes('mcp__codegraph__codegraph_explore') === true,
+    `tools=${JSON.stringify(noPromptPreStep?.tools ?? [])}`,
+  )
+  check(
+    'injectInstructions=false 时没有 mcp:codegraph section',
+    (noPromptPreStep?.prompt?.sections ?? []).length === 0,
+    `sections=${JSON.stringify((noPromptPreStep?.prompt?.sections ?? []).map((s) => s.name))}`,
+  )
+
+  console.log('\n6) maxInstructionBytes 过小时跳过注入，但工具照常')
+  const tooSmall = observe(INDEXED_PROJECT, { config: { maxInstructionBytes: 10 } })
+  const tooSmallPreStep = tooSmall.steps.filter((step) => step.at === 'pre-step').at(-1)
+  check(
+    'maxInstructionBytes=10 时工具照常可用',
+    tooSmallPreStep?.tools?.includes('mcp__codegraph__codegraph_explore') === true,
+    `tools=${JSON.stringify(tooSmallPreStep?.tools ?? [])}`,
+  )
+  check(
+    'maxInstructionBytes=10 时跳过注入（不截断、不抛错）',
+    (tooSmallPreStep?.prompt?.sections ?? []).length === 0,
+    `sections=${JSON.stringify((tooSmallPreStep?.prompt?.sections ?? []).map((s) => s.name))}`,
+  )
+
+  console.log('\n7) 非法配置被 schema 拒绝，不会注册出畸形工具名')
   const conflict = observe(INDEXED_PROJECT, { config: { serverName: 'bad name!' } })
   const conflictPreStep = conflict.steps.filter((step) => step.at === 'pre-step').at(-1)
   check(
@@ -200,7 +261,7 @@ try {
     `tools=${JSON.stringify(conflictPreStep?.tools ?? [])}`,
   )
 
-  console.log('\n6) 配置了 --path 时进程判定仍然可靠（问题 4 的前提被破坏也能正确断言）')
+  console.log('\n8) 配置了 --path 时进程判定仍然可靠（问题 4 的前提被破坏也能正确断言）')
   // codegraphArgs 是开放数组，用户可能加 --path。此时进程「是否残留」的判定若基于
   // 命令行特征就会失效；改用快照差集后，这里验证带 --path 的配置同样能被正确清理。
   const withPath = observe(INDEXED_PROJECT, {

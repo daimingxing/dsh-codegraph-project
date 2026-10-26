@@ -51,7 +51,13 @@ function fakeSubprocess() {
         if (message.id === undefined) return
         const result =
           message.method === 'initialize'
-            ? { protocolVersion: '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: 'fake' } }
+            ? {
+                protocolVersion: '2024-11-05',
+                capabilities: { tools: {} },
+                serverInfo: { name: 'fake' },
+                // 与真实 CodeGraph 1.6.2 同形：instructions 是可选字符串字段。
+                instructions: '# Codegraph — fake playbook',
+              }
             : message.method === 'tools/list'
               ? { tools: [{ name: 'codegraph_explore', description: 'x', inputSchema: { type: 'object', properties: {} } }] }
               : {}
@@ -239,4 +245,29 @@ test('未连接时不暴露项目标识与 stderr', async (t) => {
 
   assert.equal(hub.projectTag, undefined)
   assert.equal(hub.stderrTail, '')
+  assert.equal(hub.instructions(), '', '未连接时指引应为空串，不是 undefined')
+})
+
+test('连接后暴露 initialize 里的 instructions，供会话注入系统提示词', async (t) => {
+  const subprocess = fakeSubprocess()
+  const pool = new Pool({ subprocess, config })
+  t.after(() => pool.closeAll())
+
+  const hub = await pool.acquire('C:\\project')
+
+  // 同项目多会话共享一个子进程，所以这段文本只解析一次、内容必然一致。
+  assert.equal(hub.instructions(), '# Codegraph — fake playbook')
+})
+
+test('同一项目的两个会话读到同一份 instructions', async (t) => {
+  const subprocess = fakeSubprocess()
+  const pool = new Pool({ subprocess, config })
+  t.after(() => pool.closeAll())
+
+  const first = await pool.acquire('C:\\project')
+  const second = await pool.acquire('C:\\project')
+
+  assert.equal(first, second)
+  assert.equal(first.instructions(), second.instructions())
+  assert.equal(subprocess.spawned.length, 1, '共享进程，指引不该被重复获取')
 })

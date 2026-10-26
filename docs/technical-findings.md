@@ -228,10 +228,15 @@ register(definition) {
 |---|---|---|
 | 工具数 | 1 | 只需桥接一个 |
 | 属性数 | 3，全是标量 | schema 转换器可极简（~20 行） |
-| `description` 长度 | **582 字符** | **含核心使用指引**（"PRIMARY TOOL — call FIRST"，"Read-equivalent"） |
-| `instructions` 长度 | **6,718 字符** | 进阶用法，本插件不注入（见 why-no-prompt.md） |
+| `description` 长度 | **582 字符** | 含核心使用指引（"PRIMARY TOOL — call FIRST"，"Read-equivalent"） |
+| `instructions` 长度 | **6786 字节** | 完整 playbook；本插件注入为 per-agent section（见 [instructions.md](instructions.md)） |
 
-`description` 已在提示词里（工具定义的固有部分），这大幅降低了"模型不知道怎么用"的风险。
+`description` 已在提示词里（工具定义的固有部分），这降低了"模型不知道怎么用"的风险；
+但它不覆盖"什么时候会误判"（词法匹配、新鲜度 banner），那部分只在 `instructions` 里。
+
+> 修正记录：早期版本此处记作「6,718 字符」，并据此判定为「进阶用法，不注入」。
+> 该结论已被推翻——`instructions` 是 MCP 协议的标准引导通道，`dsh-mcp-client` 本来就会
+> 注入，本插件自建 transport 必须显式补齐。
 
 ---
 

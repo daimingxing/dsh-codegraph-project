@@ -61,6 +61,29 @@ function pluginChildCount() {
   }
 }
 
+/**
+ * 读取该会话真正会发给模型的 system prompt section 快照。
+ *
+ * 这是「注入 instructions」功能的唯一可信证据：不看插件内部状态，而是调用
+ * `systemPrompt.assemble()` —— 与 agent-loop 组装请求时完全同一条路径 —— 再从中
+ * 挑出 codegraph 相关的 section。若作用域挂错（挂成全局），无索引会话也会出现，
+ * 因此这个函数同时服务于「有」和「无」两侧的断言。
+ */
+async function promptSections(ctx, agent) {
+  const systemPrompt = agent.ctx.get('systemPrompt')
+  if (systemPrompt === undefined) return { available: false, sections: [] }
+  const assembly = await systemPrompt.assemble({ agent, scope: agent })
+  const codegraph = assembly.sections
+    .filter((section) => section.name.startsWith('mcp:'))
+    .map((section) => ({
+      name: section.name,
+      bytes: Buffer.byteLength(section.text, 'utf8'),
+      // 只留特征片段：完整 6.8KB 写进结果文件没有意义，断言用前几行足够。
+      head: section.text.split('\n').slice(0, 3).join('\n'),
+    }))
+  return { available: true, sections: codegraph }
+}
+
 export function apply(ctx) {
   record('applied')
 
@@ -71,11 +94,13 @@ export function apply(ctx) {
 
   // pre-step 在插件完成挂载之后才跑：这里读到的工具列表就是本轮真正会发给模型的集合。
   ctx.on('agent/pre-step', async (payload, next) => {
+    const prompt = await promptSections(ctx, payload.agent)
     steps.push({
       at: 'pre-step',
       cwd: payload.agent.session?.header?.cwd,
       tools: codegraphTools(ctx, payload.agent),
       children: pluginChildCount(),
+      prompt,
     })
     record('pre-step')
     return next()

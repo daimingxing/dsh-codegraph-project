@@ -148,12 +148,14 @@ dsh plugin --profile web add dsh-codegraph-project@latest
 | `toolCallTimeoutMs` | `60000` | 单次工具调用超时，单位毫秒，必须大于 0 |
 | `connectTimeoutMs` | `5000` | MCP 握手超时，单位毫秒，必须大于 0 |
 | `watchIntervalMs` | `2000` | 重新检查项目的最短间隔，单位毫秒；`0` 表示每次消息处理前都检查 |
+| `injectInstructions` | `true` | 把 CodeGraph 的使用指引注入系统提示词 |
+| `maxInstructionBytes` | `32768` | 注入的字节上限；超出则跳过注入并告警，工具不受影响 |
 
 **Windows 启动失败：** 默认会处理 npm 全局安装生成的 `.cmd` 启动脚本。安装布局不同时，按日志提示设置 `codegraphBin` 和 `codegraphArgs`；如果通过 `node.exe` 启动，参数需包含入口脚本路径以及 `serve`、`--mcp`。
 
 **索引识别边界：** 插件从会话目录向上查找包含 `.db` 数据库文件的 `.codegraph/`，不会跨过 `.git` 仓库边界，也不会把家目录或文件系统根目录当成项目。索引无法读取时会停止查找。
 
-**工具与提示词：** 默认工具名以 `mcp__codegraph__` 开头。插件不额外注入系统提示词；如需模型优先使用 CodeGraph，可以在项目的 `AGENTS.md` 中说明，见[设计理由](docs/why-no-prompt.md)。
+**工具与提示词：** 默认工具名以 `mcp__codegraph__` 开头。插件会把 CodeGraph 自带的使用指引（约 6.8KB）注入当前会话的系统提示词，跟着项目走：有索引的会话才有，换项目会自动替换。不需要时可用 `injectInstructions: false` 关掉。详见[设计理由](docs/instructions.md)。
 
 </details>
 
@@ -173,15 +175,16 @@ npm install --omit=dev
 验证命令（在本仓库执行）：
 
 ```powershell
-npm test                                              # 27 个单元测试
+npm test                                              # 37 个单元测试
 node scripts/check-locate.mjs                          # 索引发现规则
 node scripts/check-failure-reporting.mjs               # 启动失败的去重上报
 node scripts/check-sharing.mjs 'D:\path\to\your-project' # 真进程共享检查
 node scripts/probe.mjs 'D:\path\to\your-project' 'createOrder' # CodeGraph 查询验证
+node scripts/probe-instructions.mjs 'D:\path\to\your-project'  # 上游 instructions 探测
 node scripts/acceptance.mjs                            # DSH headless 真机验收
 ```
 
-真进程检查需要已安装 CodeGraph 且目标项目已有索引。`acceptance.mjs` 会临时向 `headless` profile 安装插件和探针，结束后还原；它检查工具与进程状态，不运行模型对话。
+真进程检查需要已安装 CodeGraph 且目标项目已有索引。`acceptance.mjs` 会临时向 `headless` profile 安装插件和探针，结束后还原；它检查工具、进程与系统提示词状态，不运行模型对话。
 
 | 环境变量 | 用于 | 默认值 |
 |---|---|---|
@@ -210,7 +213,7 @@ npm 可能要求在浏览器完成发布认证。已发布版本号不能复用�
 - [开发与验收清单](docs/implementation-plan.md)
 - [运行时调研记录](docs/technical-findings.md)
 - [风险与边界条件](docs/risks.md)
-- [为什么不额外注入系统提示词](docs/why-no-prompt.md)
+- [为什么要注入 CodeGraph 的使用指引](docs/instructions.md)
 
 本项目参考过 [troytse/dsh-plugin-codegraph-project](https://github.com/troytse/dsh-plugin-codegraph-project)（MIT）。本插件选择复用本机 CodeGraph，并按会话作用域注册工具；实现取舍见上面的技术文档。
 

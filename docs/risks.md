@@ -166,7 +166,6 @@ CodeGraph 在大仓库首次查询可能较慢。默认 60 秒。
 | 自动 `codegraph init` | 建索引是用户的决定，CodeGraph 官方也坚持这点 |
 | CodeGraph 版本管理 | 用户自己装、自己升级 |
 | 遥测开关 | 不干预 CodeGraph 默认行为 |
-| 注入 instructions | 见 why-no-prompt.md |
 | 诊断 UI / 设置页 | 日志足够；显著扩大维护面 |
 | 断线重连（首版） | 先验证基础可用性 |
 | 索引轮询定时器 | 用 `agent/pre-step` 懒检测替代 |

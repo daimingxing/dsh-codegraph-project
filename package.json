@@ -1,6 +1,6 @@
 {
   "name": "dsh-codegraph-project",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Per-project CodeGraph MCP tools: each session queries the repo it is actually working in",
   "license": "MIT",
   "repository": {
@@ -25,7 +25,9 @@
     "@deepseek-ai/schemastery": "~3.18.5"
   },
   "scripts": {
-    "test": "node --test test/locate.test.js test/pool.test.js test/bridge.test.js"
+    "test": "node --test test/locate.test.js test/pool.test.js test/bridge.test.js test/instructions.test.js",
+    "acceptance": "node scripts/acceptance.mjs",
+    "probe:instructions": "node scripts/probe-instructions.mjs"
   },
   "dsh": {
     "bundle": {

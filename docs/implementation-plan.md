@@ -543,6 +543,6 @@ keys=["stdin","stdout","stderr","control","collected","done","terminate","termin
 | 为什么这样设计？考虑过哪些替代方案？ | [architecture.md](architecture.md) |
 | 这条结论是怎么验证的？有没有源码依据？ | [technical-findings.md](technical-findings.md) |
 | 某个边界情况怎么处理？有哪些坑？ | [risks.md](risks.md) |
-| 为什么不用 CodeGraph 的 instructions？ | [why-no-prompt.md](why-no-prompt.md) |
+| 为什么注入 CodeGraph 的 instructions？ | [instructions.md](instructions.md) |
 
 **这些都不需要提前读。** 实现时按本文档写即可。
